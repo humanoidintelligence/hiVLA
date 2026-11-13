@@ -1,0 +1,48 @@
+# Serve StarVLA's Qwen3-VL-GR00T-Robocasa-gr1 (QwenGR00T: Qwen3-VL-4B + DiT-B
+# flow-matching head, 90k steps on fourier_gr1_unified_1000) for the RoboCasa
+# GR1 tabletop tasks driven by hiRobot's robocasa driver. Run from a StarVLA env
+# (tested with transformers 4.57, flash-attn 2.7.4) with hiVLA's serving deps
+# installed (see docs/families/starvla.md):
+#
+#   HIVLA_MODELS=/path/to/models hivla serve --config starvla_qwengr00t_gr1
+#
+# HIVLA_MODELS (required) is the directory holding the base checkpoints; loading
+# fails if it is unset.
+#
+# I/O, reproducing StarVLA's examples/Robocasa_tabletop/eval_files/model2robocasa_interface.py:
+#   images.ego_view (256, 256, 3) uint8 -> cv2 INTER_AREA resize to 224x224
+#   joint_pos (29,) = left_arm 7 | right_arm 7 | left_hand 6 | right_hand 6 | waist 3
+#                  -> [sin, cos] per group -> state (1, 58)
+#   instruction -> lang
+#   joint_targets (16, 29), same order, absolute radians (min/max-unnormalized
+#   with dataset_statistics.json["gr1"], clipped to [-1, 1] first).
+
+model:
+  name: starvla-qwengr00t-gr1
+  family: starvla
+  checkpoint: ${HIVLA_MODELS}/Qwen3-VL-GR00T-Robocasa-gr1/checkpoints/steps_90000_pytorch_model.pt
+  action_horizon: 16
+
+# Read by StarvlaBackend (family-specific, stored in ModelSpec.model_extra).
+native_kwargs:
+  # config.yaml stores ./pt_models/... relative to the training cwd.
+  base_vlm: ${HIVLA_MODELS}/Qwen3-VL-4B-Instruct-Action
+  unnorm_key: gr1
+  state_groups: [7, 7, 6, 6, 3]
+  state_encoding: sincos
+  image_size: [224, 224]
+  bf16: true
+
+runtime:
+  device: cuda
+  max_batch_size: 1
+
+policy:
+  action_dim: 29
+  control_mode: position
+  cameras: [ego_view]
+
+server:
+  transport: http
+  host: 0.0.0.0
+  port: 8000

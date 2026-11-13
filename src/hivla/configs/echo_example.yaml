@@ -1,0 +1,21 @@
+# Dry run: no checkpoint, no GPU, no deep-learning stack.
+#
+# The echo backend returns a zero action chunk of shape (action_horizon,
+# action_dim), so you can try the server, the wire format and hivla.client
+# before installing a model. See example.yaml for every option.
+#
+#   hivla serve --config echo_example
+
+model:
+  name: echo
+  backend: echo
+  action_horizon: 16
+
+policy:
+  action_dim: 7
+  control_mode: position
+  cameras: [head]
+
+server:
+  host: 0.0.0.0
+  port: 8000

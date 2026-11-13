@@ -1,0 +1,53 @@
+# Serve RLinf's π0.5 LIBERO few-shot SFT checkpoint (RLinf/RLinf-Pi05-LIBERO-SFT:
+# PyTorch model.safetensors + physical-intelligence/libero/norm_stats.json, one model
+# for all four suites) for the LIBERO benchmark driven by hiRobot's libero driver. Run
+# from an RLinf env with hiVLA's serving deps installed (see docs/families/rlinf.md),
+# with the checkpoint downloaded to $RLINF_CKPT:
+#
+#   OPENPI_DATA_HOME=cache/openpi RLINF_CKPT=cache/rlinf/RLinf-Pi05-LIBERO-SFT \
+#     hivla serve --config rlinf_pi05_libero
+#
+# OPENPI_DATA_HOME (PaliGemma tokenizer) and RLINF_CKPT (checkpoint dir) are both
+# required; loading fails if either is unset.
+#
+# I/O, the same robot side as openpi_pi05_libero.yaml:
+#   images.agentview / images.wrist (256, 256, 3) uint8, already rotated 180 degrees
+#     -> main_images, wrist_images (openpi's LiberoInputs + ResizeImages(224) in-model)
+#   joint_pos (8,) = eef pos 3 | eef axis-angle 3 | gripper qpos 2 -> states
+#   instruction -> task_descriptions
+#   ee_targets.eef (5, 6) delta pos + delta axis-angle, gripper.gripper (5,) in [-1, 1]
+#
+# RLinf returns only the executed chunk (num_action_chunks: 5 in its LIBERO evals);
+# num_steps is the flow-matching denoise step count (RLinf's evals use 3-5).
+
+model:
+  name: rlinf-pi05-libero-sft
+  family: rlinf
+  checkpoint: ${RLINF_CKPT}
+  action_horizon: 5
+
+# Read by RlinfBackend (family-specific, stored in ModelSpec.model_extra).
+native_kwargs:
+  config: pi05_libero
+  cameras:
+    agentview: main_images
+    wrist: wrist_images
+  num_steps: 5
+  seed: 0
+  action_layout:
+    - [ee_targets, eef, 6]
+    - [gripper, gripper, 1]
+
+runtime:
+  device: cuda
+  max_batch_size: 1
+
+policy:
+  action_dim: 7
+  control_mode: cartesian_delta
+  cameras: [agentview, wrist]
+
+server:
+  transport: http
+  host: 0.0.0.0
+  port: 8000

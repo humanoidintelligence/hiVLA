@@ -1,0 +1,42 @@
+# Serve the GR00T N1.6-3B base checkpoint for the Fourier GR-1 (embodiment tag
+# gr1), e.g. for the RoboCasa GR1 tabletop tasks driven by hiRobot's robocasa
+# driver. Run from the gr00tn1d6 env (Isaac-GR00T n1.6 + flash-attn + hiVLA):
+#
+#   HIVLA_MODELS=/path/to/models hivla serve --config gr00t_n1d6_gr1
+#
+# HIVLA_MODELS (required) is the directory holding the base checkpoints; loading
+# fails if it is unset.
+#
+# I/O (from the checkpoint's processor_config.json, embodiment gr1):
+#   images.<any one camera>  (256, 256, 3) uint8 -> video ego_view_bg_crop_pad_res256_freq20
+#   joint_pos (29,) = left_arm 7 | right_arm 7 | left_hand 6 | right_hand 6 | waist 3
+#   instruction  -> language "task"
+#   joint_targets (16, 29), same group order, absolute targets (GR00T decodes
+#   relative arm/hand actions against the sent state).
+
+model:
+  name: gr00t-n1.6-3b-gr1
+  family: gr00t
+  checkpoint: ${HIVLA_MODELS}/Isaac-GR00T-n1.6/checkpoints/GR00T-N1.6-3B
+  action_horizon: 16       # GR00T gr1 predicts 16 steps
+  n_action_steps: 8        # GR00T's robocasa eval executes 8 of 16 steps
+
+# Read by Gr00tBackend (family-specific, stored in ModelSpec.model_extra).
+native_kwargs:
+  embodiment_tag: gr1
+  cameras:
+    ego_view: ego_view_bg_crop_pad_res256_freq20   # robot camera -> GR00T video key
+
+runtime:
+  device: cuda
+  max_batch_size: 1
+
+policy:
+  action_dim: 29
+  control_mode: position
+  cameras: [ego_view]
+
+server:
+  transport: http
+  host: 0.0.0.0
+  port: 8000

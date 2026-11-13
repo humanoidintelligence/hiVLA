@@ -1,0 +1,25 @@
+# Example hiVLA router configuration.
+#
+# The router (`hivla route --config this.yaml`) load-balances `POST /act` across
+# a pool of `hivla serve` backends, so a client points at the router exactly as
+# it would at one server. Start one backend per GPU (one `hivla serve` each, on
+# its own port/host), list them here, and pick a routing policy.
+
+router:
+  # Backend servers to spread requests over (base URLs). One per GPU is typical;
+  # they can live on different hosts. Values expand ${VAR}, ~ and ${VAR:-default}.
+  backends:
+    - http://127.0.0.1:8001
+    - http://127.0.0.1:8002
+    - ${HIVLA_BACKEND_3:-http://127.0.0.1:8003}
+
+  # round_robin       — hand out in turn, ignore load (free, no body decode).
+  # least_outstanding — fewest in-flight requests wins (a slow backend sheds load).
+  # consistent_hash   — pin each observation to one backend, keeping that
+  #                     backend's repeat-observation cache warm (decodes to hash).
+  policy: round_robin
+
+  host: 0.0.0.0
+  port: 8000
+  timeout: 30.0        # per-request timeout to a backend (seconds)
+  # api_key: secret    # if set, required on the router's /act AND forwarded upstream

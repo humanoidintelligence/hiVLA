@@ -1,0 +1,35 @@
+# Serve a LeRobot v0.6.2 ACT checkpoint (bimanual ALOHA sim, transfer-cube).
+#
+# The checkpoint must be in lerobot's processor format (policy_preprocessor.json +
+# policy_postprocessor.json next to model.safetensors). The official
+# lerobot/act_aloha_sim_transfer_cube_human hub repo is a legacy (pre-0.4)
+# checkpoint; convert it once inside the lerobot env:
+#
+#   python <lerobot>/src/lerobot/processor/migrate_policy_normalization.py \
+#       --pretrained-path lerobot/act_aloha_sim_transfer_cube_human \
+#       --output-dir checkpoints/act_aloha_sim_transfer_cube_human
+#
+# I/O (from the checkpoint's config.json):
+#   observation.images.top  (480, 640, 3) uint8
+#   observation.state       (14,)
+#   action                  (14,)  -> joint_targets (action_horizon, 14)
+
+model:
+  name: act-aloha-transfer-cube
+  family: lerobot
+  checkpoint: checkpoints/act_aloha_sim_transfer_cube_human
+  action_horizon: 100      # ACT chunk_size; <= chunk_size, sliced server-side
+
+runtime:
+  device: cuda
+  max_batch_size: 1
+
+policy:
+  action_dim: 14
+  control_mode: position
+  cameras: [top]
+
+server:
+  transport: http
+  host: 0.0.0.0
+  port: 8000

@@ -1,0 +1,47 @@
+# Serve Physical Intelligence's π0.5-LIBERO (gs://openpi-assets/checkpoints/pi05_libero,
+# JAX, trained with openpi's pi05_libero config) for the LIBERO benchmark driven by
+# hiRobot's libero driver. Run from an openpi env with hiVLA's serving deps installed
+# (see docs/families/openpi.md); openpi downloads the checkpoint into $OPENPI_DATA_HOME:
+#
+#   OPENPI_DATA_HOME=cache/openpi hivla serve --config openpi_pi05_libero
+#
+# I/O, reproducing openpi's examples/libero/main.py client:
+#   images.agentview / images.wrist (256, 256, 3) uint8, already rotated 180 degrees
+#     -> resize_with_pad to 224x224 -> observation/image, observation/wrist_image
+#   joint_pos (8,) = eef pos 3 | eef axis-angle 3 | gripper qpos 2 -> observation/state
+#   instruction -> prompt
+#   ee_targets.eef (10, 6) delta pos + delta axis-angle, gripper.gripper (10,) in [-1, 1]
+#   (openpi unnormalizes with assets/physical-intelligence/libero/norm_stats.json).
+
+model:
+  name: openpi-pi05-libero
+  family: openpi
+  checkpoint: ${OPENPI_DATA_HOME}/openpi-assets/checkpoints/pi05_libero
+  action_horizon: 10
+  n_action_steps: 5        # openpi's replan_steps: 5 of 10 steps
+
+# Read by OpenpiBackend (family-specific, stored in ModelSpec.model_extra).
+native_kwargs:
+  config: pi05_libero
+  cameras:
+    agentview: observation/image
+    wrist: observation/wrist_image
+  state_key: observation/state
+  image_size: [224, 224]
+  action_layout:
+    - [ee_targets, eef, 6]
+    - [gripper, gripper, 1]
+
+runtime:
+  device: cuda
+  max_batch_size: 1
+
+policy:
+  action_dim: 7
+  control_mode: cartesian_delta
+  cameras: [agentview, wrist]
+
+server:
+  transport: http
+  host: 0.0.0.0
+  port: 8000

@@ -1,0 +1,42 @@
+# Example hiVLA serving configuration.
+#
+# A servable model is described by one ModelSpec (see spec.py): which
+# family, which backend, how its I/O is wrapped, and how to serve it over the
+# network. Robot I/O (embodiment, drivers, control loop) is NOT hiVLA's
+# concern — that lives in hiRobot, which calls this server for inference.
+
+model:
+  name: example-vla
+  family: generic          # generic | openpi | gr00t | lerobot | starvla
+  checkpoint: checkpoints/example.pt
+  backend: auto            # auto | echo | torch | onnx | tensorrt | remote
+  action_horizon: 16       # length of the predicted action chunk
+
+runtime:
+  device: cuda             # cuda | cpu
+  precision: fp16          # fp32 | fp16 | bf16
+  max_batch_size: 8        # >1 enables dynamic request batching
+  batch_timeout: 0.002     # seconds to accumulate a batch
+  cache: false             # replay the previous chunk on a repeated observation
+  cache_ttl: 0.5
+
+# How the model's I/O is wrapped: the preprocess -> model -> postprocess pipeline
+# (VlaPolicy). This is the "fat server" part — the client ships only a
+# semi-raw observation (hiRobot's Observation fields) and gets back a decoded
+# action chunk (hiRobot's ActionChunk fields).
+policy:
+  action_dim: 7            # robot action width (echo backend / metadata)
+  control_mode: position   # chunk mode; one of hiRobot's ControlMode values
+  cameras: [head, left_wrist, right_wrist]   # advertised via /metadata
+  # norm_stats: checkpoints/norm_stats.json  # {key: {mean,std} | {q01,q99} | {min,max}, mode}
+  # rename_inputs: {joint_pos: state}        # robot-facing -> model-facing keys
+  # rename_outputs: {action: joint_targets}  # model-facing -> robot-facing keys
+  # state_layout: [[joint_pos], [gripper, eef]]  # observation fields -> joint_pos, in order
+  # gripper_range: {eef: [1, -1]}  # model's gripper value when [closed, open] -> opening [0, 1]
+  # joint_names: [...]             # joint order the model was trained on (/metadata)
+
+server:
+  transport: http          # http | websocket (both always mounted; this is advisory)
+  host: 0.0.0.0
+  port: 8000
+  # api_key: secret          # if set, /act requires Authorization: Api-Key ...

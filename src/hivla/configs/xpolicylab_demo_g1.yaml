@@ -1,0 +1,43 @@
+# Serve XPolicyLab's demo_policy (numpy only) for hiRobot's unitree_g1_mujoco:
+# both 7-joint arms of the 29-DoF G1, no grippers. The policy returns zero
+# arm targets, so in the simulation the arms move to their zero pose; legs and
+# waist hold where they are (the backend fills them from joint_pos).
+#
+#   hivla launch --config xpolicylab_demo_g1      # from any env with hiVLA
+#
+# then drive the MuJoCo G1 with hivla.robot.run_episode from an env with hiRobot
+# + MuJoCo (see "Drive a hiRobot robot" in the README).
+#
+# G1 joint order (hiRobot): 0:12 legs, 12:15 waist, 15:22 left arm, 22:29 right arm.
+
+model:
+  name: xpl-demo-g1
+  family: xpolicylab
+  action_horizon: 2        # demo_policy's get_action returns 2 steps
+
+native_kwargs:
+  policy_name: demo_policy
+  action_type: joint
+  arms:
+    - {joints: [15, 22], ee: left_hand, gripper: null, ee_dim: 0}
+    - {joints: [22, 29], ee: right_hand, gripper: null, ee_dim: 0}
+  cameras:
+    cam_head: head         # model camera -> robot camera
+
+runtime:
+  device: cpu
+  max_batch_size: 1
+  cache: false             # XPolicyLab policies are stateful
+
+policy:
+  action_dim: 29
+  control_mode: position
+
+launch:
+  env: ${XPOLICYLAB_ENV:-xpolicylab}   # env with XPolicyLab + hiVLA (hivla launch)
+  ready_timeout: 120
+
+server:
+  transport: http
+  host: 127.0.0.1
+  port: 8012

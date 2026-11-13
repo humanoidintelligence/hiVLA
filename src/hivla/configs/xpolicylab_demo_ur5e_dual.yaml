@@ -1,0 +1,53 @@
+# Serve XPolicyLab's demo_policy (numpy only, outputs zeros) for hiRobot's
+# ur5e_dual (two 6-joint UR5e arms, left first). Checks the xpolicylab family
+# end to end without weights or a GPU. Run from an env with XPolicyLab and
+# hiVLA installed:
+#
+#   pip install -e <path to XPolicyLab checkout> -e '.[server]'
+#   hivla serve --config xpolicylab_demo_ur5e_dual
+#
+# or, from any env with hiVLA, start it in the env named under launch:
+#
+#   hivla launch --config xpolicylab_demo_ur5e_dual
+#
+# The backend writes env_cfg/ next to the XPolicyLab checkout
+# (env_cfg/hivla_xpl_demo_ur5e_dual.yml, robot/_robot_info.json, sim/...),
+# which demo_policy's Model reads for the arm and gripper dims.
+#
+# I/O:
+#   joint_pos (12,)         = left arm 0:6 | right arm 6:12
+#   gripper[left|right/tcp] -> state/{left,right}_ee_joint_state
+#   images.scene            -> vision/cam_head/color
+#   joint_targets (2, 12)   (demo_policy returns 2 steps), gripper per arm
+
+model:
+  name: xpl-demo-ur5e-dual
+  family: xpolicylab
+  action_horizon: 2        # demo_policy's get_action returns 2 steps
+
+native_kwargs:
+  policy_name: demo_policy
+  action_type: joint
+  arms:
+    - {joints: [0, 6], ee: left/tcp}
+    - {joints: [6, 12], ee: right/tcp}
+  cameras:
+    cam_head: scene        # model camera -> robot camera
+
+runtime:
+  device: cpu
+  max_batch_size: 1
+  cache: false             # XPolicyLab policies are stateful
+
+policy:
+  action_dim: 12
+  control_mode: position
+
+launch:
+  env: ${XPOLICYLAB_ENV:-xpolicylab}   # env with XPolicyLab + hiVLA (hivla launch)
+  ready_timeout: 120
+
+server:
+  transport: http
+  host: 127.0.0.1
+  port: 8011
