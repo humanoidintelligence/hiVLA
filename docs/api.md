@@ -261,6 +261,7 @@ client.close()
 | `metadata` | The last metadata; `VlaWsClient` fills it from the connect handshake |
 | `close()` | Release the connection. Idempotent |
 | `SERVER_TIMINGS_KEY` | `"server_timings_ms"`: with `timings=True` the chunk carries the server's own stage times (ms) under this key |
+| `SessionLost` | A `RuntimeError` subclass. `VlaWsClient` raises it after a dropped connection to a stateful model, see below |
 
 Both clients serialize calls with a lock, so a prefetch thread and the control
 loop can share one. `VlaWsClient` never offers permessage-deflate and sets no
@@ -271,8 +272,16 @@ raise `httpx.HTTPStatusError`.
 
 The clients only move data: caching a chunk, replaying it and cutting it to
 `n_action_steps` is the caller's job. Call `reset()` before each episode; a
-stateful model refuses requests until it has been reset, and with `VlaWsClient`
-again after a reconnect.
+stateful model refuses requests until it has been reset.
+
+A `VlaWsClient` connection is its session, so a reconnect starts a new one. When
+the connection of a started episode drops and the model is stateful, the next
+`act` or `observe` reconnects, sends `reset` on the new connection and raises
+`SessionLost` without sending its own request. The model has forgotten the
+episode so far: start the episode over (or at least take a fresh observation).
+Calls after that work normally. With a stateless model the client just
+reconnects. `hivla.robot.run_episode` lets `SessionLost` propagate like any
+other error, after telling the robot to `hold()`.
 
 ## Router
 

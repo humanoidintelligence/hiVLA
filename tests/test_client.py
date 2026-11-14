@@ -255,3 +255,16 @@ def test_ws_calls_from_two_threads_do_not_cross(fake_ws):
         t.join(timeout=5)
     client.close()
     assert results == {float(v): float(v) for v in range(8)}
+
+
+def test_ws_reconnect_to_a_stateless_model_just_goes_on(fake_ws):
+    url, state = fake_ws
+    client = VlaWsClient(url, timeout=0.2)
+    client.reset()  # the fake server's metadata has no "stateful"
+    state["delay"] = 0.5
+    with pytest.raises(TimeoutError):
+        client.act(_obs(7.0))
+    state["delay"] = 0.0
+    assert float(client.act(_obs(8.0))["joint_targets"][0, 0]) == 8.0
+    assert state["resets"] == 1  # no reset on the new connection
+    client.close()

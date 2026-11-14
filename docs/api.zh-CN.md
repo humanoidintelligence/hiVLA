@@ -227,13 +227,19 @@ client.close()
 | `metadata` | 最近一次的元数据；`VlaWsClient` 在连接握手时就填好 |
 | `close()` | 释放连接。可以重复调用 |
 | `SERVER_TIMINGS_KEY` | `"server_timings_ms"`：设了 `timings=True` 时，chunk 在这个键下带上服务端各阶段的耗时（毫秒） |
+| `SessionLost` | `RuntimeError` 的子类。有状态模型的 `VlaWsClient` 连接断开后抛出，见下文 |
 
 两个客户端都用锁串行化调用，所以预取线程和控制循环可以共用一个客户端。`VlaWsClient` 从不启用
 permessage-deflate，也不限制消息大小。超时或连接断开后它会丢掉这条连接，迟到的回复不会被当成下一个请求的回复；
 下一次调用会重新连接。服务端回复 `error` 时抛出 `RuntimeError`；HTTP 错误抛出 `httpx.HTTPStatusError`。
 
 客户端只负责传数据：缓存 chunk、重放 chunk、按 `n_action_steps` 截断 chunk 都由调用方负责。每个 episode 之前调用
-`reset()`；有状态模型在 reset 之前拒绝请求，用 `VlaWsClient` 时重连之后也要再 reset。
+`reset()`；有状态模型在 reset 之前拒绝请求。
+
+`VlaWsClient` 的连接就是它的会话，重连就是新会话。已经开始的 episode 断了连接、模型又是有状态的时候，下一次 `act`
+或 `observe` 会重新连接、在新连接上发 `reset`，然后抛出 `SessionLost`，它自己的请求不发。模型已经忘了这个 episode
+之前的内容：要从头开始这个 episode（至少重新采一次观测）。之后的调用照常工作。无状态模型只重连，不抛错。
+`hivla.robot.run_episode` 碰到 `SessionLost` 和别的错误一样：先让机器人 `hold()`，再把异常抛出去。
 
 ## 路由器
 

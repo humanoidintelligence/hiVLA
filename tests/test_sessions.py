@@ -211,3 +211,42 @@ def test_spec_with_stateful_backend_reports_it(monkeypatch):
     engine = build_engine_from_spec(ModelSpec(family="counting_test", action_horizon=T,
                                               action_dim=DOF))
     assert engine.stateful and engine.metadata["stateful"] is True
+
+
+def test_ws_reconnect_to_a_stateful_model_resets_and_raises_session_lost(served):
+    from websockets.exceptions import ConnectionClosed
+
+    from hivla.client import SessionLost, VlaWsClient
+
+    url, backend = served
+    client = VlaWsClient(url)
+    try:
+        client.reset()
+        assert client.act(_obs())["joint_targets"][0, 0] == 1
+        client._conn.close()  # the network drops the connection
+        with pytest.raises(ConnectionClosed):
+            client.act(_obs())
+        resets = backend.resets
+        # The next call reconnects and resets the new session, but tells the caller.
+        with pytest.raises(SessionLost, match="restart the episode"):
+            client.act(_obs())
+        assert backend.resets == resets + 1
+        # The new session works and starts from zero.
+        assert client.act(_obs())["joint_targets"][0, 0] == 1
+        client.observe(_obs())
+    finally:
+        client.close()
+
+
+def test_ws_reconnect_without_an_episode_does_not_raise(served):
+    from hivla.client import VlaWsClient
+
+    url, backend = served
+    client = VlaWsClient(url)
+    try:
+        client.reset()
+        client.close()  # a deliberate close is not a lost session
+        client.reset()
+        assert client.act(_obs())["joint_targets"][0, 0] == 1
+    finally:
+        client.close()

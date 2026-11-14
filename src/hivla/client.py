@@ -48,6 +48,19 @@ SERVER_TIMINGS_KEY = "server_timings_ms"
 _WIRES = ("json", "msgpack")
 
 
+class SessionLost(RuntimeError):
+    """A stateful model's session ended with the connection; the episode must restart.
+
+    :class:`VlaWsClient` raises it from the first :meth:`~VlaWsClient.act` or
+    :meth:`~VlaWsClient.observe` after it reconnected to a stateful model. By then
+    it has already sent ``reset`` on the new connection, so the next call is
+    answered; but the model has forgotten the episode so far (its observation
+    history, an open session upstream), so the caller should start the episode
+    over, or at least take a fresh observation. The request that raised was not
+    sent.
+    """
+
+
 def _decode_reply(payload: Dict[str, Any]) -> Dict[str, Any]:
     chunk = decode_action_chunk(payload)
     if SERVER_TIMINGS_KEY in payload:
@@ -181,7 +194,10 @@ class VlaWsClient:
     dropped connection it is thrown away, so a late reply can never be paired
     with the next request, and the following call reconnects. Calls are
     serialized with a lock. The connection is the session: a reconnect is a new
-    session, so with a stateful model call :meth:`reset` again after one.
+    session. If an episode was started (:meth:`reset`) on the lost connection and
+    the model is stateful, the next :meth:`act` / :meth:`observe` reconnects,
+    resets the new session and raises :class:`SessionLost` instead of sending
+    its request; calls after that work normally.
 
     Args:
         endpoint: ``http(s)://`` or ``ws(s)://`` base URL; ``/ws`` is appended.
@@ -215,6 +231,10 @@ class VlaWsClient:
         self._headers = _auth_headers(api_key)
         self._conn: Any = None
         self._lock = threading.Lock()
+        #: An episode was reset on the current connection.
+        self._in_episode = False
+        #: The connection holding an episode was dropped; the next call re-resets.
+        self._lost = False
         #: The server's metadata, from the connect handshake or :meth:`reset`.
         self.metadata: Dict[str, Any] = {}
 
@@ -254,7 +274,7 @@ class VlaWsClient:
         except BaseException:
             # The reply may still arrive later; drop the connection so it cannot
             # be read as the answer to the next request.
-            self._drop()
+            self._drop(lost=True)
             raise
         if isinstance(frame, (bytes, bytearray)):
             return unpack(frame)
@@ -277,15 +297,36 @@ class VlaWsClient:
                 self.metadata = {}
                 return self.metadata
             reply = self._roundtrip({"type": "reset"})
+            if reply.get("type") != "reset":
+                raise RuntimeError(f"server refused reset: {reply.get('detail', reply)}")
+            self._in_episode, self._lost = True, False
+        return self.metadata
+
+    def _recover(self) -> None:
+        """After losing an episode's connection: reconnect, reset, raise :class:`SessionLost`.
+
+        Caller holds the lock. A stateless model loses nothing, so it just goes on.
+        """
+        if not self._lost:
+            return
+        self._ensure_conn()  # raises (and stays lost) while the server is unreachable
+        if not self.metadata.get("stateful"):
+            self._lost = False
+            return
+        reply = self._roundtrip({"type": "reset"})
         if reply.get("type") != "reset":
             raise RuntimeError(f"server refused reset: {reply.get('detail', reply)}")
-        return self.metadata
+        self._in_episode, self._lost = True, False
+        raise SessionLost(
+            "lost the connection to the hiVLA server; the client reconnected and reset a new "
+            "session, but the model's episode state is gone: restart the episode")
 
     def observe(self, observation: Dict[str, Any]) -> None:
         """Send one observation without asking for a chunk."""
         msg = {"type": "observe",
                "observation": encode_observation(observation, binary=self.wire == "msgpack")}
         with self._lock:
+            self._recover()
             reply = self._roundtrip(msg)
         if reply.get("type") != "observed":
             raise RuntimeError(f"server rejected observation: {reply.get('detail', reply)}")
@@ -299,6 +340,7 @@ class VlaWsClient:
         if self.timings:
             msg["timings"] = True
         with self._lock:
+            self._recover()
             reply = self._roundtrip(msg)
         if reply.get("type") == "error":
             raise RuntimeError(f"server rejected observation: {reply.get('detail')}")
@@ -306,7 +348,11 @@ class VlaWsClient:
             raise RuntimeError(f"unexpected reply type {reply.get('type')!r}")
         return _decode_reply(reply["chunk"])
 
-    def _drop(self) -> None:
+    def _drop(self, lost: bool = False) -> None:
+        """Throw the connection away; ``lost`` marks an episode on it as lost."""
+        if lost and self._in_episode:
+            self._lost = True
+        self._in_episode = False
         conn, self._conn = self._conn, None
         if conn is not None:
             try:
@@ -317,3 +363,4 @@ class VlaWsClient:
     def close(self) -> None:
         with self._lock:
             self._drop()
+            self._lost = False

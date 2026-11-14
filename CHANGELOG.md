@@ -5,6 +5,20 @@ User-facing changes in each hiVLA release, newest first. The format follows
 release may change the API or the wire format incompatibly; such changes are
 listed under "Removed" or "Changed" and marked **breaking**.
 
+## [0.0.3] - 2026-11-15
+
+A dropped WebSocket connection to a stateful model now tells the caller the
+episode is lost.
+
+### Changed
+
+- `VlaWsClient`: after the connection of a started episode drops, the next
+  `act` or `observe` to a stateful model reconnects, resets the new session and
+  raises the new `hivla.client.SessionLost` (a `RuntimeError`), instead of
+  sending the request to an unreset session and failing with a server error.
+  Restart the episode when you catch it; the next call works. Stateless models
+  reconnect as before.
+
 ## [0.0.2] - 2026-11-14
 
 Initial support for Pokebot's cloud RoboAPI.
@@ -89,5 +103,6 @@ action chunk; everything model-specific runs on the server.
   hiRobot's MuJoCo G1. No XPolicyLab policy with real weights has been served
   yet.
 
+[0.0.3]: https://github.com/humanoidintelligence/hiVLA/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/humanoidintelligence/hiVLA/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/humanoidintelligence/hiVLA/releases/tag/v0.0.1

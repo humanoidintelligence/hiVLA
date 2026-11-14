@@ -4,6 +4,16 @@
 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。0.1.0 之前任何版本都可能有不兼容的接口或线协议改动，
 这类改动列在"移除"或"变更"下，并标 **不兼容**。
 
+## [0.0.3] - 2026-11-15
+
+有状态模型的 WebSocket 连接断开后，客户端会告诉调用方这个 episode 丢了。
+
+### 变更
+
+- `VlaWsClient`：已经开始的 episode 断了连接后，对有状态模型的下一次 `act` 或 `observe` 会重新连接、reset 新会话，
+  然后抛出新的 `hivla.client.SessionLost`（`RuntimeError` 的子类）。以前是把请求发给没 reset 过的会话，收到服务端报错。
+  捕获到它就从头开始这个 episode，下一次调用照常工作。无状态模型和以前一样只重连。
+
 ## [0.0.2] - 2026-11-14
 
 初步支持 Pokebot 云端 RoboAPI。
@@ -59,5 +69,6 @@
   LeRobot ACT ALOHA 在 HTTP 和 WebSocket 上的动作形状；XPolicyLab `demo_policy` 在 hiRobot 的 MuJoCo G1 上。
   还没有部署过带真实权重的 XPolicyLab policy。
 
+[0.0.3]: https://github.com/humanoidintelligence/hiVLA/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/humanoidintelligence/hiVLA/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/humanoidintelligence/hiVLA/releases/tag/v0.0.1
