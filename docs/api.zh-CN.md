@@ -220,7 +220,7 @@ client.close()
 | 名字 | 说明 |
 |---|---|
 | `VlaClient(endpoint, timeout=10.0, api_key=None, wire="json", timings=False)` | 每次调用一个 HTTP 请求（`POST /act`、`/reset`、`/observe`，`GET /metadata`），复用连接池。`session` 是它随机生成的会话 id，作为 `X-Hivla-Session` 发出 |
-| `VlaWsClient(endpoint, timeout=10.0, api_key=None, wire="msgpack", timings=False)` | 一条 `/ws` 长连接，这条连接就是它的会话；重连后是新会话。`endpoint` 可以是 `http(s)://` 或 `ws(s)://` |
+| `VlaWsClient(endpoint, timeout=10.0, api_key=None, wire="msgpack", timings=False)` | 一条 `/ws` 长连接，这条连接就是它的会话；重连后是新会话。`endpoint` 是基础 URL，可以是 `http(s)://` 或 `ws(s)://`；客户端自己会加 `/ws` |
 | `act(observation) -> dict` | 发送一个普通的观测 dict（numpy 数组、嵌套的 `images` / `ee_poses`、`instruction`），返回解码后的 chunk dict（`mode`、`joint_targets`、`kp`、`kd`、`ee_targets`、`gripper`；只含服务端发来的键） |
 | `reset() -> dict` | 开始一个 episode：把服务端的元数据取到 `metadata` 里，通知服务端 reset，返回元数据。服务端没起来时 `metadata` 是 `{}`，错误会在下一次 `act` 时出现；服务端起来了但拒绝 reset 时直接抛错 |
 | `observe(observation)` | 发送一个观测，不要 chunk；用于 `observe: every_step` 的模型 |

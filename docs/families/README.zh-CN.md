@@ -16,6 +16,7 @@
 | `starvla` | StarVLA `baseframework` checkpoint（QwenGR00T、QwenOFT 等） | [starVLA/starVLA](https://github.com/starVLA/starVLA) | `starvla_qwengr00t_gr1` | 否 | [starvla.zh-CN.md](starvla.zh-CN.md) |
 | `xpolicylab` | 任意 XPolicyLab policy（`ModelTemplate` 接口） | [XPolicyLab/XPolicyLab](https://github.com/XPolicyLab/XPolicyLab) | `xpolicylab_demo_g1` | 是 | [xpolicylab.zh-CN.md](xpolicylab.zh-CN.md) |
 | `rlinf` | RLinf 用 PyTorch 重新实现的 π₀ / π₀.₅ | [RLinf/RLinf](https://github.com/RLinf/RLinf) | `rlinf_pi05_libero` | 否 | [rlinf.zh-CN.md](rlinf.zh-CN.md) |
+| `pokebot` | Pokebot 云端模型 `poke-aurora`，经 RoboAPI（HTTP）调用 | [RoboAPI 文档](https://developers.pokebot.com/docs/roboapi/latest) | `pokebot_aurora` | 是 | [pokebot.zh-CN.md](pokebot.zh-CN.md) |
 
 **有状态**的系列在请求之间保留状态（观测窗口、policy 自己的缓冲）。服务端对它们一次只服务一个会话，并在
 `/metadata` 里报告 `stateful: true`；见[架构](../../README.zh-CN.md#架构)和

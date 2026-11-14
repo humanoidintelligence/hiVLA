@@ -4,6 +4,23 @@
 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。0.1.0 之前任何版本都可能有不兼容的接口或线协议改动，
 这类改动列在"移除"或"变更"下，并标 **不兼容**。
 
+## [0.0.2] - 2026-11-14
+
+初步支持 Pokebot 云端 RoboAPI。
+
+### 新增
+
+- `pokebot` family：通过 RoboAPI（`https://api.pokebot.com/v1`）调用 Pokebot 云端模型 `poke-aurora`，内置配置
+  `pokebot_aurora`。输入一张腕部相机图、末端位姿和夹爪开度，返回末端绝对位姿，作为 `cartesian` 模式的 `ee_targets`。
+  这个 family 有状态：每个 episode 一个 RoboAPI 会话，并按 API 要求发送执行回执。请求超时后先向服务端查这一轮的结果，
+  不重发，同一段动作不会取两次。API key 从 `POKEBOT_API_KEY` 读取。已对真实 API 验证，还没上真机。
+- 指南 `docs/families/pokebot.zh-CN.md`（和英文版），包括上真机前要做的 RoboAPI 标定和工具坐标系设置。
+- README 的 family 画廊和 family 表里加了 PokeBot。
+
+### 修正
+
+- `docs/api.zh-CN.md`：`VlaWsClient` 接收服务的基础 URL，`/ws` 由客户端自己加。
+
 ## [0.0.1] - 2026-11-14
 
 第一个公开版本：把一个 VLA checkpoint 放在统一的网络接口后面提供服务。机器人一侧发来观测，拿回一段动作
@@ -42,4 +59,5 @@
   LeRobot ACT ALOHA 在 HTTP 和 WebSocket 上的动作形状；XPolicyLab `demo_policy` 在 hiRobot 的 MuJoCo G1 上。
   还没有部署过带真实权重的 XPolicyLab policy。
 
+[0.0.2]: https://github.com/humanoidintelligence/hiVLA/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/humanoidintelligence/hiVLA/releases/tag/v0.0.1

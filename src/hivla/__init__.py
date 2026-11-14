@@ -18,7 +18,7 @@ Names are imported on first use, so ``import hivla.protocol`` or
 from importlib import import_module
 from typing import Any
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 #: Public name -> module that defines it.
 _EXPORTS = {

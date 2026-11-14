@@ -5,6 +5,30 @@ User-facing changes in each hiVLA release, newest first. The format follows
 release may change the API or the wire format incompatibly; such changes are
 listed under "Removed" or "Changed" and marked **breaking**.
 
+## [0.0.2] - 2026-11-14
+
+Initial support for Pokebot's cloud RoboAPI.
+
+### Added
+
+- `pokebot` family: Pokebot's cloud model `poke-aurora` through RoboAPI
+  (`https://api.pokebot.com/v1`), with the built-in config `pokebot_aurora`.
+  One wrist image, the end-effector pose and the gripper opening go in;
+  absolute end-effector poses come back as `ee_targets` in `cartesian` mode.
+  The family is stateful: one RoboAPI session per episode, with the execution
+  receipt the API asks for. A request that times out is looked up on the
+  server instead of being sent again, so a block is never fetched twice. The
+  API key is read from `POKEBOT_API_KEY`. Checked against the live API; not
+  yet run on a real robot.
+- Guide `docs/families/pokebot.md` (and the Chinese version), including the
+  RoboAPI calibration and tool-frame steps a real robot needs first.
+- PokeBot in the README families gallery and the families table.
+
+### Fixed
+
+- `docs/api.md`: `VlaWsClient` takes the server's base URL and appends `/ws`
+  itself.
+
 ## [0.0.1] - 2026-11-14
 
 First public release: a serving layer that runs a VLA checkpoint behind one
@@ -65,4 +89,5 @@ action chunk; everything model-specific runs on the server.
   hiRobot's MuJoCo G1. No XPolicyLab policy with real weights has been served
   yet.
 
+[0.0.2]: https://github.com/humanoidintelligence/hiVLA/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/humanoidintelligence/hiVLA/releases/tag/v0.0.1

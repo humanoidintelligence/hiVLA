@@ -18,6 +18,7 @@ chunk, what has been verified, and common pitfalls.
 | `starvla` | StarVLA `baseframework` checkpoints (QwenGR00T, QwenOFT, ...) | [starVLA/starVLA](https://github.com/starVLA/starVLA) | `starvla_qwengr00t_gr1` | no | [starvla.md](starvla.md) |
 | `xpolicylab` | Any XPolicyLab policy (`ModelTemplate` interface) | [XPolicyLab/XPolicyLab](https://github.com/XPolicyLab/XPolicyLab) | `xpolicylab_demo_g1` | yes | [xpolicylab.md](xpolicylab.md) |
 | `rlinf` | π₀ / π₀.₅ in RLinf's PyTorch reimplementation | [RLinf/RLinf](https://github.com/RLinf/RLinf) | `rlinf_pi05_libero` | no | [rlinf.md](rlinf.md) |
+| `pokebot` | Pokebot's cloud model `poke-aurora` through RoboAPI (HTTP) | [RoboAPI docs](https://developers.pokebot.com/docs/roboapi/latest) | `pokebot_aurora` | yes | [pokebot.md](pokebot.md) |
 
 **Stateful** families keep state between requests (an observation window, the
 policy's own buffers). The server serves one session at a time for them and

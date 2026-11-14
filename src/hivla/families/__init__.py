@@ -10,6 +10,7 @@ the family-agnostic machinery (wire codec, batching, caching, transport).
 * ``lerobot``, ``openpi``, ``gr00t``, ``starvla``, ``xpolicylab``, ``rlinf``:
   the model's own package runs the whole pipeline; the module next to the
   adapter (``families/<name>.py``) maps the fields.
+* ``pokebot``: Pokebot's cloud RoboAPI model, called over HTTP (no local weights).
 * :class:`NativeFamily` (``families/native.py``): an adapter for any package
   whose factory returns an ``obs -> action`` policy.
 
@@ -27,6 +28,7 @@ from hivla.families.gr00t import Gr00tFamily
 from hivla.families.lerobot import LerobotFamily
 from hivla.families.native import NativeFamily
 from hivla.families.openpi import OpenpiFamily
+from hivla.families.pokebot import PokebotFamily
 from hivla.families.rlinf import RlinfFamily
 from hivla.families.starvla import StarvlaFamily
 from hivla.families.xpolicylab import XPolicyLabFamily
@@ -34,7 +36,7 @@ from hivla.families.xpolicylab import XPolicyLabFamily
 __all__ = [
     "FamilyAdapter", "rename_transforms", "GenericFamily", "NativeFamily",
     "LerobotFamily", "OpenpiFamily", "Gr00tFamily", "StarvlaFamily",
-    "XPolicyLabFamily", "RlinfFamily",
+    "XPolicyLabFamily", "RlinfFamily", "PokebotFamily",
     "register_family", "get_adapter", "available_families",
 ]
 
@@ -68,3 +70,4 @@ register_family(Gr00tFamily())
 register_family(StarvlaFamily())
 register_family(XPolicyLabFamily())
 register_family(RlinfFamily())
+register_family(PokebotFamily())

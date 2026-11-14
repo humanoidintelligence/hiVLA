@@ -254,7 +254,7 @@ client.close()
 | Name | Description |
 |---|---|
 | `VlaClient(endpoint, timeout=10.0, api_key=None, wire="json", timings=False)` | One HTTP request per call (`POST /act`, `/reset`, `/observe`, `GET /metadata`) on a pooled connection. `session` is its random session id, sent as `X-Hivla-Session` |
-| `VlaWsClient(endpoint, timeout=10.0, api_key=None, wire="msgpack", timings=False)` | One long-lived `/ws` connection, which is its session; a reconnect is a new session. `endpoint` may be `http(s)://` or `ws(s)://` |
+| `VlaWsClient(endpoint, timeout=10.0, api_key=None, wire="msgpack", timings=False)` | One long-lived `/ws` connection, which is its session; a reconnect is a new session. `endpoint` is the base URL, `http(s)://` or `ws(s)://`; the client appends `/ws` itself |
 | `act(observation) -> dict` | Send a plain observation dict (numpy arrays, nested `images` / `ee_poses`, `instruction`), return the decoded chunk dict (`mode`, `joint_targets`, `kp`, `kd`, `ee_targets`, `gripper`; keys the server sent) |
 | `reset() -> dict` | Start an episode: fetch the server metadata into `metadata`, tell the server to reset, and return the metadata. A server that is down leaves it `{}` and the error shows on the next `act`; a server that is up but refuses the reset raises |
 | `observe(observation)` | Send one observation without asking for a chunk, for a model with `observe: every_step` |

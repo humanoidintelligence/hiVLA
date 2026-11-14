@@ -1,0 +1,49 @@
+# Pokebot RoboAPI: the cloud poke-aurora model, called over HTTP.
+#
+# No weights or GPU: the backend sends one wrist image, the end-effector pose
+# and the gripper opening to https://api.pokebot.com/v1 and returns absolute
+# end-effector poses. See docs/families/pokebot.md.
+#
+#   export POKEBOT_API_KEY=sk-...        # from https://platform.pokebot.com
+#   hivla serve pokebot_aurora
+#
+# I/O:
+#   ee_poses[eef] (7,) [x, y, z, qx, qy, qz, qw], gripper[eef] (opening in [0, 1])
+#   images.wrist  HxWx3 RGB (the wrist fisheye, uncropped)
+#   instruction   non-empty
+#   -> ee_targets[eef] (40, 7), gripper[eef] (40,), mode cartesian
+#
+# The robot must report the pose in RoboAPI's calibrated task frame (Home +
+# A/B/C calibration, flange centre as the control point).
+
+model:
+  name: pokebot-aurora
+  family: pokebot
+  action_horizon: 40       # poke-aurora-preview returns 40 rows per turn
+  n_action_steps: 40       # rows the client runs before asking again (sent in the receipt)
+
+native_kwargs:
+  base_url: https://api.pokebot.com/v1
+  model: poke-aurora-preview     # an id from GET /models
+  api_key_env: POKEBOT_API_KEY
+  ee: eef
+  camera: wrist
+  image_format: jpeg
+  jpeg_quality: 90
+  max_pixels: 230400       # 640 x 360, as RoboAPI's own runtime sends
+  timeout: 60
+
+runtime:
+  device: cpu
+  max_batch_size: 1
+  cache: false             # one session per episode
+  warmup: false            # a warm-up call would cost balance
+
+policy:
+  action_dim: 7
+  control_mode: cartesian
+
+server:
+  transport: http
+  host: 127.0.0.1
+  port: 8020
